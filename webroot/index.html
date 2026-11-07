@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TrustAnyCert</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --bg: #0f1118;
+            --surface: #181a24;
+            --surface-2: #1e2130;
+            --surface-3: #252838;
+            --border: #2a2d3a;
+            --text: #e2e4ea;
+            --text-2: #9196a8;
+            --text-3: #5e6374;
+            --primary: #5b7bf7;
+            --primary-dim: rgba(91, 123, 247, 0.12);
+            --green: #3ddc84;
+            --green-dim: rgba(61, 220, 132, 0.12);
+            --red: #f25555;
+            --red-dim: rgba(242, 85, 85, 0.12);
+            --yellow: #f5c542;
+            --yellow-dim: rgba(245, 197, 66, 0.12);
+        }
+
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app {
+            max-width: 460px;
+            margin: 0 auto;
+            padding: 0 16px 32px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg);
+        }
+
+        .toolbar-title { font-size: 17px; font-weight: 600; }
+        .toolbar-version {
+            font-size: 12px;
+            color: var(--text-3);
+            background: var(--surface);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .section { margin-bottom: 20px; }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 0 4px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-label .count {
+            background: var(--surface-2);
+            color: var(--text-2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .status-row:last-child { border-bottom: none; }
+        .status-row .label { font-size: 14px; color: var(--text-2); }
+        .status-row .value { font-size: 13px; font-weight: 600; }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .chip.ok   { background: var(--green-dim); color: var(--green); }
+        .chip.warn { background: var(--yellow-dim); color: var(--yellow); }
+        .chip.err  { background: var(--red-dim); color: var(--red); }
+        .chip.info { background: var(--primary-dim); color: var(--primary); }
+        .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        .upload-card { background: var(--surface); border-radius: 14px; padding: 20px 16px; }
+
+        .upload-area {
+            border: 1.5px dashed var(--border);
+            border-radius: 10px;
+            padding: 28px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+        .upload-area:active, .upload-area.over {
+            border-color: var(--primary);
+            background: var(--primary-dim);
+        }
+        .upload-area input {
+            position: absolute; inset: 0;
+            opacity: 0; cursor: pointer;
+        }
+        .upload-area .ic {
+            margin-bottom: 10px;
+            color: var(--text-2);
+            display: flex;
+            justify-content: center;
+        }
+        .upload-area .ic svg { width: 32px; height: 32px; }
+        .upload-area .t1 { font-size: 14px; font-weight: 500; color: var(--text-2); }
+        .upload-area .t2 { font-size: 12px; color: var(--text-3); margin-top: 4px; line-height: 1.6; }
+
+        /* Preview list */
+        .preview { margin-top: 14px; display: none; }
+        .preview.show { display: block; }
+        .preview-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-3);
+            margin-bottom: 6px;
+        }
+        .preview-head .clear {
+            background: transparent;
+            border: none;
+            color: var(--text-2);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .preview-head .clear:active { color: var(--red); }
+
+        .cert-item {
+            background: var(--surface-2);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 12.5px;
+            line-height: 1.6;
+        }
+        .cert-item:last-child { margin-bottom: 0; }
+        .cert-item .cn {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-word;
+        }
+        .cert-item .meta {
+            color: var(--text-2);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        .cert-item .meta .k {
+            color: var(--text-3);
+            display: inline-block;
+            min-width: 56px;
+        }
+        .cert-item .flags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .cert-item .flags .chip { font-size: 10.5px; padding: 2px 8px; }
+
+        /* Installed certs */
+        .cert-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cert-row:last-child { border-bottom: none; }
+        .cert-row .info { flex: 1; min-width: 0; }
+        .cert-row .info .title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cert-row .info .sub {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 2px;
+            font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+        }
+        .cert-row .del {
+            width: 32px; height: 32px;
+            border: none;
+            background: var(--red-dim);
+            color: var(--red);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .cert-row .del:active { background: rgba(242,85,85,0.25); }
+        .cert-row .del svg { width: 14px; height: 14px; }
+        .empty-state {
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--text-3);
+            font-size: 13px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.4; pointer-events: none; }
+
+        .btn-primary { background: var(--primary); color: #fff; margin-top: 14px; }
+        .btn-outline { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+        .btn-outline:active { background: var(--surface-2); }
+        .btn-danger { background: var(--red); color: #fff; }
+
+        .action-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .action-item:last-child { border-bottom: none; }
+        .action-item:active { background: var(--surface-2); }
+
+        .action-item .a-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+        .action-item .a-icon.blue  { background: var(--primary-dim); color: var(--primary); }
+        .action-item .a-icon.amber { background: var(--yellow-dim); color: var(--yellow); }
+        .action-item .a-icon.red   { background: var(--red-dim);    color: var(--red); }
+        .action-item .a-icon.green { background: var(--green-dim);  color: var(--green); }
+        .action-item .a-icon svg { width: 20px; height: 20px; display: block; }
+
+        .action-item .a-text .a-title { font-size: 14px; font-weight: 500; }
+        .action-item .a-text .a-desc { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+        .action-item .arrow { margin-left: auto; color: var(--text-3); font-size: 14px; }
+
+        .log-box {
+            display: none;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin: 12px 16px 16px;
+            padding: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 11px;
+            line-height: 1.7;
+            color: var(--text-3);
+        }
+        .log-box.show { display: block; }
+        .log-box::-webkit-scrollbar { width: 3px; }
+        .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .log-box .l { padding: 1px 0; word-break: break-all; }
+        .log-box .l.g { color: var(--green); }
+        .log-box .l.r { color: var(--red); }
+        .log-box .l.y { color: var(--yellow); }
+        .log-box .l.b { color: var(--primary); }
+
+        .progress {
+            height: 3px;
+            background: var(--surface-3);
+            border-radius: 3px;
+            margin-top: 12px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress.show { display: block; }
+        .progress .bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .toast-wrap {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: calc(100% - 32px);
+            max-width: 428px;
+            pointer-events: none;
+        }
+        .toast {
+            padding: 13px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            animation: tIn 0.3s ease;
+            margin-top: 8px;
+        }
+        .toast.ok  { background: #1a2e22; border: 1px solid #264d35; color: var(--green); }
+        .toast.err { background: #2e1a1a; border: 1px solid #4d2626; color: var(--red); }
+        .toast.inf { background: #1a1e2e; border: 1px solid #26354d; color: var(--primary); }
+        .toast.out { animation: tOut 0.25s ease forwards; }
+        @keyframes tIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes tOut { to { opacity: 0; transform: translateY(8px); } }
+
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 50;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-bg.show { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 400px;
+            padding: 24px 20px;
+            animation: mIn 0.25s ease;
+        }
+        @keyframes mIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .modal-box p  { font-size: 13px; color: var(--text-2); margin-bottom: 18px; }
+        .modal-box .btns { display: flex; gap: 10px; }
+        .modal-box .btns .btn { flex: 1; }
+
+        .spin {
+            width: 15px; height: 15px;
+            border: 2px solid rgba(255,255,255,0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: sp 0.6s linear infinite;
+            display: inline-block;
+        }
+        @keyframes sp { to { transform: rotate(360deg); } }
+
+        .foot {
+            text-align: center;
+            padding: 16px 0 8px;
+            font-size: 11px;
+            color: var(--text-3);
+        }
+        .foot a { color: var(--text-2); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="toast-wrap" id="toasts"></div>
+
+    <div class="modal-bg" id="confirmModal">
+        <div class="modal-box">
+            <h3 id="confirmTitle">Confirm</h3>
+            <p id="confirmMsg">Are you sure?</p>
+            <div class="btns">
+                <button class="btn btn-outline" onclick="closeConfirm(false)">Cancel</button>
+                <button class="btn btn-danger" id="confirmOk" onclick="closeConfirm(true)">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app">
+        <div class="toolbar">
+            <span class="toolbar-title">TrustAnyCert</span>
+            <span class="toolbar-version">v1.0</span>
+        </div>
+
+        <!-- Status -->
+        <div class="section">
+            <div class="section-label"><span>Status</span></div>
+            <div class="card">
+                <div class="status-row">
+                    <span class="label">Module</span>
+                    <span id="sModule"><span class="chip info"><span class="dot"></span> checking</span></span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Certificates</span>
+                    <span id="sCert"><span class="chip info"><span class="dot"></span> checking</span></span>
+                </div>
+                <div class="status-row">
+                    <span class="label">APEX Trust Store</span>
+                    <span id="sApex"><span class="chip info"><span class="dot"></span> checking</span></span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Android</span>
+                    <span id="sAndroid" class="value" style="color:var(--text-2)">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload -->
+        <div class="section">
+            <div class="section-label"><span>Add Certificate</span></div>
+            <div class="upload-card">
+                <div class="upload-area" id="dropZone">
+                    <div class="ic">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <path d="M17 8l-5-5-5 5"/>
+                            <path d="M12 3v12"/>
+                        </svg>
+                    </div>
+                    <div class="t1">Tap to select a certificate file</div>
+                    <div class="t2">PEM, DER, CRT, CER, P7B, P7C, or PEM bundle</div>
+                    <input type="file" id="fileIn" accept=".pem,.crt,.cer,.der,.p7b,.p7c,.cert,.0,application/x-x509-ca-cert,application/x-pem-file,application/pkcs7-mime,application/pkix-cert">
+                </div>
+                <div class="preview" id="preview">
+                    <div class="preview-head">
+                        <span id="previewTitle">—</span>
+                        <button class="clear" onclick="clearFile()">Clear</button>
+                    </div>
+                    <div id="previewList"></div>
+                </div>
+                <div class="progress" id="prog"><div class="bar" id="progBar"></div></div>
+                <button class="btn btn-primary" id="installBtn" disabled onclick="install()">Install Certificate</button>
+            </div>
+        </div>
+
+        <!-- Installed -->
+        <div class="section">
+            <div class="section-label">
+                <span>Installed Certificates</span>
+                <span class="count" id="installedCount">0</span>
+            </div>
+            <div class="card" id="installedCard">
+                <div class="empty-state" id="installedEmpty">No certificates installed</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="section">
+            <div class="section-label"><span>Actions</span></div>
+            <div class="card">
+                <div class="action-item" onclick="reinject()">
+                    <div class="a-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                            <path d="M3 21v-5h5"/>
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                        </svg>
+                    </div>
+                    <div class="a-text">
+                        <div class="a-title">Re-inject into APEX</div>
+                        <div class="a-desc">Refresh the trust store without rebooting (Android 14+)</div>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+                <div class="action-item" onclick="toggleLog()">
+                    <div class="a-icon amber">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M8 6h13"/>
+                            <path d="M8 12h13"/>
+                            <path d="M8 18h13"/>
+                            <circle cx="3.5" cy="6" r="1.2"/>
+                            <circle cx="3.5" cy="12" r="1.2"/>
+                            <circle cx="3.5" cy="18" r="1.2"/>
+                        </svg>
+                    </div>
+                    <div class="a-text">
+                        <div class="a-title">Module Log</div>
+                        <div class="a-desc">Tail the module script log</div>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+                <div class="action-item" onclick="checkAll()">
+                    <div class="a-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                            <path d="M21 4v5h-5"/>
+                        </svg>
+                    </div>
+                    <div class="a-text">
+                        <div class="a-title">Refresh</div>
+                        <div class="a-desc">Re-run status checks</div>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+                <div class="action-item" onclick="askReboot()">
+                    <div class="a-icon red">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 3v9"/>
+                            <path d="M18.4 7.6a9 9 0 1 1-12.8 0"/>
+                        </svg>
+                    </div>
+                    <div class="a-text">
+                        <div class="a-title">Reboot</div>
+                        <div class="a-desc">Full restart (rarely needed)</div>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+            </div>
+            <div class="log-box" id="logBox"></div>
+        </div>
+
+        <div class="foot">
+            <a href="https://github.com/gorkemgun/TrustAnyCert">GitHub</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/gorkemgun/TrustAnyCert/issues">Issues</a>
+        </div>
+    </div>
+
+<script src="cert.js"></script>
+<script>
+const MOD = '/data/adb/modules/trustanycert';
+const CERTS = MOD + '/system/etc/security/cacerts';
+const LOG = '/data/local/tmp/trustanycert.log';
+
+// ---------- shell bridge ----------
+function exec(cmd) {
+    return new Promise((resolve, reject) => {
+        const cb = '_c' + Date.now() + Math.random().toString(36).slice(2, 6);
+        window[cb] = (e, out, err) => { delete window[cb]; e === 0 ? resolve(out || '') : reject(new Error(err || 'exit ' + e)); };
+        try {
+            if (typeof ksu !== 'undefined' && ksu.exec) {
+                ksu.exec(cmd, '{}', cb);
+            } else {
+                delete window[cb];
+                reject(new Error('Root bridge unavailable'));
+            }
+        } catch (x) { delete window[cb]; reject(x); }
+    });
+}
+async function run(cmd) { try { return await exec(cmd); } catch (e) { return ''; } }
+
+// Safely quote a single-quoted shell argument
+function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'"; }
+
+// Base64 → file via small-ish chunks (safe for any cert size)
+async function writeBase64File(path, b64) {
+    // heredoc avoids argv length limits entirely
+    const marker = 'PPIN_EOF_' + Math.random().toString(36).slice(2);
+    const cmd = `base64 -d > ${shq(path)} <<'${marker}'\n${b64}\n${marker}\n`;
+    await exec(cmd);
+}
+
+// ---------- UI helpers ----------
+function toast(msg, type = 'inf') {
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 250); }, 3500);
+}
+
+function esc(s) { const d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+
+function fmtSize(b) { return b < 1024 ? b + ' B' : (b / 1024).toFixed(1) + ' KB'; }
+function fmtDate(d) {
+    if (!d || isNaN(d.getTime())) return 'unknown';
+    return d.toISOString().slice(0, 10);
+}
+
+let cachedApi = 0;
+let cachedCertCount = 0;
+
+// ---------- Status ----------
+async function checkAll() {
+    const sM = document.getElementById('sModule');
+    const sC = document.getElementById('sCert');
+    const sA = document.getElementById('sApex');
+    const sV = document.getElementById('sAndroid');
+
+    try {
+        const exists = (await run(`[ -d ${shq(MOD)} ] && echo y`)).trim();
+        const disabled = (await run(`[ -f ${shq(MOD + '/disable')} ] && echo y`)).trim();
+        if (exists === 'y' && disabled !== 'y') sM.innerHTML = '<span class="chip ok"><span class="dot"></span> Active</span>';
+        else if (disabled === 'y') sM.innerHTML = '<span class="chip warn"><span class="dot"></span> Disabled</span>';
+        else sM.innerHTML = '<span class="chip err"><span class="dot"></span> Not found</span>';
+    } catch (e) { sM.innerHTML = '<span class="chip warn"><span class="dot"></span> Unknown</span>'; }
+
+    try {
+        const n = parseInt((await run(`find ${shq(CERTS)} -maxdepth 1 -type f -name '*.[0-9]*' 2>/dev/null | wc -l`)).trim()) || 0;
+        cachedCertCount = n;
+        if (n > 0) sC.innerHTML = `<span class="chip ok"><span class="dot"></span> ${n} installed</span>`;
+        else sC.innerHTML = '<span class="chip warn"><span class="dot"></span> None yet</span>';
+    } catch (e) { sC.innerHTML = '<span class="chip warn"><span class="dot"></span> Error</span>'; }
+
+    try {
+        const api = parseInt((await run('getprop ro.build.version.sdk')).trim()) || 0;
+        cachedApi = api;
+        if (api >= 34) {
+            const n = parseInt((await run(`find ${shq(CERTS)} -maxdepth 1 -type f -name '*.[0-9]*' 2>/dev/null | wc -l`)).trim()) || 0;
+            if (n === 0) {
+                sA.innerHTML = '<span class="chip info"><span class="dot"></span> Nothing to inject</span>';
+            } else {
+                // Check every user cert is present in APEX
+                const script = `
+                    MISS=0
+                    for f in ${CERTS}/*.[0-9]*; do
+                        [ -f "$f" ] || continue
+                        [ -f "/apex/com.android.conscrypt/cacerts/$(basename "$f")" ] || MISS=$((MISS+1))
+                    done
+                    echo $MISS
+                `;
+                const missing = parseInt((await run(script)).trim());
+                sA.innerHTML = missing === 0
+                    ? '<span class="chip ok"><span class="dot"></span> Injected</span>'
+                    : `<span class="chip warn"><span class="dot"></span> ${missing} pending</span>`;
+            }
+        } else {
+            sA.innerHTML = '<span class="chip info"><span class="dot"></span> N/A</span>';
+        }
+    } catch (e) { sA.innerHTML = '<span class="chip info"><span class="dot"></span> N/A</span>'; }
+
+    try {
+        const ver = (await run('getprop ro.build.version.release')).trim();
+        const api = (await run('getprop ro.build.version.sdk')).trim();
+        sV.textContent = ver + ' (API ' + api + ')';
+    } catch (e) { sV.textContent = '—'; }
+
+    await loadInstalled();
+}
+
+// ---------- Installed certs list ----------
+async function loadInstalled() {
+    const card = document.getElementById('installedCard');
+    const countEl = document.getElementById('installedCount');
+
+    try {
+        const list = (await run(`ls -1 ${shq(CERTS)}/*.[0-9]* 2>/dev/null`)).trim();
+        const files = list ? list.split('\n').map(s => s.trim()).filter(Boolean) : [];
+        countEl.textContent = files.length;
+
+        if (files.length === 0) {
+            card.innerHTML = '<div class="empty-state" id="installedEmpty">No certificates installed</div>';
+            return;
+        }
+
+        // Build rows. Read each cert to parse subject.
+        const rows = [];
+        for (const path of files) {
+            const name = path.replace(/^.*\//, '');
+            let subject = '';
+            try {
+                const pemB64 = (await run(`base64 -w0 ${shq(path)} 2>/dev/null || base64 ${shq(path)}`)).replace(/\s+/g, '');
+                if (pemB64) {
+                    const bytes = TrustAnyCert.b64Decode(pemB64);
+                    const parsed = await TrustAnyCert.parseCertificateFile(bytes);
+                    if (parsed.length) subject = parsed[0].subjectCN || parsed[0].subject;
+                }
+            } catch (e) { /* ignore parse errors */ }
+            rows.push({ path, name, subject });
+        }
+
+        const xIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>';
+        card.innerHTML = rows.map(r => `
+            <div class="cert-row">
+                <div class="info">
+                    <div class="title">${esc(r.subject || r.name)}</div>
+                    <div class="sub">${esc(r.name)}</div>
+                </div>
+                <button class="del" data-path="${esc(r.path)}" data-name="${esc(r.name)}" title="Delete" aria-label="Delete">${xIcon}</button>
+            </div>
+        `).join('');
+        card.querySelectorAll('.del').forEach(btn => {
+            btn.addEventListener('click', () => deleteCert(btn.dataset.path, btn.dataset.name));
+        });
+    } catch (e) {
+        card.innerHTML = '<div class="empty-state">Failed to list certificates</div>';
+    }
+}
+
+async function deleteCert(path, name) {
+    const ok = await confirmModal('Delete certificate?',
+        `Remove ${name} from the module? You may need to reboot or re-inject for the change to take effect.`,
+        'Delete');
+    if (!ok) return;
+    try {
+        await run(`rm -f ${shq(path)}`);
+        toast('Deleted ' + name, 'ok');
+        await checkAll();
+    } catch (e) {
+        toast('Delete failed: ' + e.message, 'err');
+    }
+}
+
+// ---------- Upload ----------
+const fileIn = document.getElementById('fileIn');
+const dropZone = document.getElementById('dropZone');
+let pendingCerts = null; // array from TrustAnyCert.parseCertificateFile
+
+fileIn.addEventListener('change', onFile);
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        fileIn.files = e.dataTransfer.files;
+        onFile();
+    }
+});
+
+async function onFile() {
+    const f = fileIn.files[0];
+    if (!f) return;
+    const prev = document.getElementById('preview');
+    const list = document.getElementById('previewList');
+    const title = document.getElementById('previewTitle');
+
+    prev.classList.add('show');
+    list.innerHTML = '<div class="empty-state">Parsing…</div>';
+    title.textContent = f.name + ' · ' + fmtSize(f.size);
+
+    try {
+        const buf = new Uint8Array(await f.arrayBuffer());
+        const parsed = await TrustAnyCert.parseCertificateFile(buf);
+        if (!parsed.length) throw new Error('No certificates found');
+        pendingCerts = parsed;
+
+        // Preload existing filenames so we can flag duplicates / pick collision index
+        const existing = await existingCertNames();
+
+        list.innerHTML = parsed.map(c => {
+            const now = Date.now();
+            const expired = c.notAfter && c.notAfter.getTime() < now;
+            const notYet = c.notBefore && c.notBefore.getTime() > now;
+            const chips = [];
+            if (c.selfSigned) chips.push('<span class="chip info">self-signed</span>');
+            if (expired) chips.push('<span class="chip err">expired</span>');
+            if (notYet) chips.push('<span class="chip warn">not yet valid</span>');
+            chips.push(`<span class="chip ok">${esc(c.sourceFormat.toUpperCase())}</span>`);
+
+            // Pick non-colliding filename (for display)
+            let n = 0;
+            while (existing.has(c.hash + '.' + n)) n++;
+            const target = c.hash + '.' + n;
+            const collision = n > 0;
+
+            return `
+                <div class="cert-item">
+                    <div class="cn">${esc(c.subjectCN)}</div>
+                    <div class="meta"><span class="k">Issuer:</span> ${esc(c.issuerCN)}</div>
+                    <div class="meta"><span class="k">Valid:</span> ${fmtDate(c.notBefore)} → ${fmtDate(c.notAfter)}</div>
+                    <div class="meta"><span class="k">File:</span> ${esc(target)}</div>
+                    ${collision ? `<div class="meta" style="color:var(--yellow)">Hash collision &mdash; installed alongside existing as <code>.${n}</code></div>` : ''}
+                    <div class="flags">${chips.join('')}</div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('installBtn').disabled = false;
+    } catch (e) {
+        pendingCerts = null;
+        list.innerHTML = `<div class="empty-state" style="color:var(--red)">${esc(e.message)}</div>`;
+        document.getElementById('installBtn').disabled = true;
+    }
+}
+
+async function existingCertNames() {
+    try {
+        const out = (await run(`ls -1 ${shq(CERTS)} 2>/dev/null`)).trim();
+        const set = new Set();
+        if (out) out.split('\n').forEach(s => { s = s.trim(); if (s) set.add(s); });
+        return set;
+    } catch (e) { return new Set(); }
+}
+
+function clearFile() {
+    fileIn.value = '';
+    pendingCerts = null;
+    document.getElementById('preview').classList.remove('show');
+    document.getElementById('installBtn').disabled = true;
+}
+
+// ---------- Install ----------
+async function install() {
+    if (!pendingCerts || !pendingCerts.length) return;
+
+    const btn = document.getElementById('installBtn');
+    const prog = document.getElementById('prog');
+    const bar = document.getElementById('progBar');
+
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.innerHTML = '<span class="spin"></span> Installing…';
+    prog.classList.add('show');
+    bar.style.width = '10%';
+
+    try {
+        await run(`mkdir -p ${shq(CERTS)}`);
+        const existing = await existingCertNames();
+
+        let done = 0;
+        const total = pendingCerts.length;
+        for (const c of pendingCerts) {
+            // Pick next free collision index for this hash
+            let n = 0;
+            while (existing.has(c.hash + '.' + n)) n++;
+            const name = c.hash + '.' + n;
+            const target = CERTS + '/' + name;
+
+            // Write PEM atomically: tmp file then move
+            const b64 = TrustAnyCert.b64Encode(new TextEncoder().encode(c.pem));
+            const tmp = '/data/local/tmp/tac-upload-' + Date.now() + '-' + n;
+            await writeBase64File(tmp, b64);
+            await run(`mv -f ${shq(tmp)} ${shq(target)} && chmod 0644 ${shq(target)} && chown 0:0 ${shq(target)} 2>/dev/null`);
+
+            existing.add(name);
+            done++;
+            bar.style.width = (10 + (80 * done / total)) + '%';
+        }
+
+        bar.style.width = '100%';
+        toast(total === 1 ? 'Certificate installed' : `${total} certificates installed`, 'ok');
+        setTimeout(() => {
+            clearFile();
+            prog.classList.remove('show');
+            bar.style.width = '0';
+            checkAll();
+        }, 900);
+    } catch (e) {
+        toast('Install failed: ' + e.message, 'err');
+        prog.classList.remove('show');
+        bar.style.width = '0';
+    }
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+}
+
+// ---------- Actions ----------
+async function reinject() {
+    if (cachedApi > 0 && cachedApi < 34) {
+        toast('Not needed on Android < 14 (magic mount handles it)', 'inf');
+        return;
+    }
+    if (cachedCertCount === 0) {
+        toast('No certificates to inject yet', 'inf');
+        return;
+    }
+    toast('Re-injecting into APEX…', 'inf');
+    // FAST=1 skips the 60s boot-wait path in service.sh
+    await run(`FAST=1 sh ${shq(MOD + '/service.sh')}`);
+    toast('Re-injection complete', 'ok');
+    setTimeout(checkAll, 600);
+}
+
+let logOpen = false;
+async function toggleLog() {
+    const box = document.getElementById('logBox');
+    if (logOpen) { box.classList.remove('show'); logOpen = false; return; }
+    const raw = await run(`tail -80 ${shq(LOG)} 2>/dev/null || echo "No logs available"`);
+    const lines = raw.split('\n').filter(l => l.trim());
+    box.innerHTML = lines.map(l => {
+        let c = '';
+        if (/✓|SUCCESS/.test(l)) c = 'g';
+        else if (/ERROR|✗|FAIL/.test(l)) c = 'r';
+        else if (/WARNING|⚠/.test(l)) c = 'y';
+        else if (/═|╔|╚|===/.test(l)) c = 'b';
+        return '<div class="l ' + c + '">' + esc(l) + '</div>';
+    }).join('');
+    box.classList.add('show');
+    box.scrollTop = box.scrollHeight;
+    logOpen = true;
+}
+
+async function askReboot() {
+    const ok = await confirmModal('Reboot device?',
+        'Device will restart to apply certificate changes. Make sure all work is saved.',
+        'Reboot');
+    if (ok) { toast('Rebooting…', 'inf'); await run('reboot'); }
+}
+
+// ---------- Confirm modal ----------
+let confirmResolve = null;
+function confirmModal(title, msg, okLabel) {
+    return new Promise(resolve => {
+        confirmResolve = resolve;
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMsg').textContent = msg;
+        document.getElementById('confirmOk').textContent = okLabel || 'Confirm';
+        document.getElementById('confirmModal').classList.add('show');
+    });
+}
+function closeConfirm(ok) {
+    document.getElementById('confirmModal').classList.remove('show');
+    if (confirmResolve) { confirmResolve(!!ok); confirmResolve = null; }
+}
+
+document.addEventListener('DOMContentLoaded', checkAll);
+</script>
+</body>
+</html>
